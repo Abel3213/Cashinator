@@ -66,14 +66,14 @@ function populateChart() {
 
   myChart = new Chart(ctx, {
     type: 'line',
-      data: {
-        labels,
-        datasets: [{
-            label: "Total Over Time",
-            fill: true,
-            backgroundColor: "#6666ff",
-            data
-        }]
+    data: {
+      labels,
+      datasets: [{
+        label: "Total Over Time",
+        fill: true,
+        backgroundColor: "#6666ff",
+        data
+      }]
     }
   });
 }
@@ -111,7 +111,7 @@ function sendTransaction(isAdding) {
   populateChart();
   populateTable();
   populateTotal();
-  
+
   // also send to server
   fetch("/api/transaction", {
     method: "POST",
@@ -121,33 +121,66 @@ function sendTransaction(isAdding) {
       "Content-Type": "application/json"
     }
   })
-  .then(response => {    
-    return response.json();
-  })
-  .then(data => {
-    if (data.errors) {
-      errorEl.textContent = "Missing Information";
-    }
-    else {
+    .then(response => {
+      return response.json();
+    })
+    .then(data => {
+      if (data.errors) {
+        errorEl.textContent = "Missing Information";
+      }
+      else {
+        // clear form
+        nameEl.value = "";
+        amountEl.value = "";
+      }
+    })
+    .catch(err => {
+      // fetch failed, so save in indexed db
+      saveRecord(transaction);
+
       // clear form
       nameEl.value = "";
       amountEl.value = "";
-    }
-  })
-  .catch(err => {
-    // fetch failed, so save in indexed db
-    saveRecord(transaction);
-
-    // clear form
-    nameEl.value = "";
-    amountEl.value = "";
-  });
+    });
 }
 
-document.querySelector("#add-btn").onclick = function() {
+const submitMessageP = document.querySelector("#submit-message");
+const submitMessageButton = document.querySelector("#submit-message-ok");
+const offlineMessageP = document.querySelector("#offline-message");
+
+if (submitMessageP.textContent === "") {
+  submitMessageButton.classList.add("hidden");
+}
+submitMessageButton.onclick = () => {
+  submitMessageP.textContent = "";
+  submitMessageButton.classList.add("hidden");
+}
+
+function submitMessage() {
+  if (navigator.onLine) {
+    submitMessageP.textContent = "Your transaction has been successfully charted!";
+  } else {
+    submitMessageP.textContent = "Your transaction is saved and will be added when you're online again.";
+  }
+
+  if (submitMessageButton.classList !== "") {
+    submitMessageButton.classList.remove("hidden");
+  }
+}
+
+window.addEventListener('offline', () => {
+  offlineMessageP.textContent = "You are offline, but don't worry! All your transactions will be saved.";
+});
+window.addEventListener('online', () => {
+  offlineMessageP.textContent = "";
+});
+
+document.querySelector("#add-btn").onclick = function () {
   sendTransaction(true);
+  submitMessage();
 };
 
-document.querySelector("#sub-btn").onclick = function() {
+document.querySelector("#sub-btn").onclick = function () {
   sendTransaction(false);
+  submitMessage();
 };
